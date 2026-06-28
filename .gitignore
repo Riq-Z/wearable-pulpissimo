@@ -16,3 +16,6 @@ libraries/gui/libs/
 # GUI Build Directory
 libraries/gui/build
 libraries/gui/tests/build
+
+libraries/sensors/afe4400/build/
+libraries/sensors/afe4400/test_soft

@@ -114,63 +114,76 @@ static void ui_create(void)
 {
     lv_obj_t *scr = lv_screen_active();
     lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
 
     g_tileview = lv_tileview_create(scr);
     lv_obj_set_size(g_tileview, LV_PCT(100), LV_PCT(100));
     lv_obj_set_style_bg_color(g_tileview, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     /* ── Tile 0: Clock ──────────────────────────────────────────── */
     lv_obj_t *t0 = lv_tileview_add_tile(g_tileview, 0, 0, LV_DIR_RIGHT);
     lv_obj_set_style_bg_color(t0, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     g_lbl_time = lv_label_create(t0);
     lv_label_set_text(g_lbl_time, "00:00:00");
     lv_obj_set_style_text_color(g_lbl_time, lv_color_white(), 0);
     lv_obj_align(g_lbl_time, LV_ALIGN_CENTER, 0, -10);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     g_lbl_date = lv_label_create(t0);
     lv_label_set_text(g_lbl_date, "01/01/2025");
     lv_obj_set_style_text_color(g_lbl_date, lv_color_white(), 0);
     lv_obj_align(g_lbl_date, LV_ALIGN_CENTER, 0, 8);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     /* ── Tile 1: Health ─────────────────────────────────────────── */
     lv_obj_t *t1 = lv_tileview_add_tile(g_tileview, 1, 0,
                                          LV_DIR_LEFT | LV_DIR_RIGHT);
     lv_obj_set_style_bg_color(t1, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     lv_obj_t *hdr1 = lv_label_create(t1);
     lv_label_set_text(hdr1, "Health");
     lv_obj_set_style_text_color(hdr1, lv_color_white(), 0);
     lv_obj_align(hdr1, LV_ALIGN_TOP_MID, 0, 4);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     g_lbl_hr = lv_label_create(t1);
     lv_label_set_text(g_lbl_hr, "HR: -- bpm");
     lv_obj_set_style_text_color(g_lbl_hr, lv_color_white(), 0);
     lv_obj_align(g_lbl_hr, LV_ALIGN_CENTER, 0, -8);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     g_lbl_spo2 = lv_label_create(t1);
     lv_label_set_text(g_lbl_spo2, "SpO2: --%");
     lv_obj_set_style_text_color(g_lbl_spo2, lv_color_white(), 0);
     lv_obj_align(g_lbl_spo2, LV_ALIGN_CENTER, 0, 8);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     /* ── Tile 2: Fitness ────────────────────────────────────────── */
     lv_obj_t *t2 = lv_tileview_add_tile(g_tileview, 2, 0, LV_DIR_LEFT);
     lv_obj_set_style_bg_color(t2, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     lv_obj_t *hdr2 = lv_label_create(t2);
     lv_label_set_text(hdr2, "Fitness");
     lv_obj_set_style_text_color(hdr2, lv_color_white(), 0);
     lv_obj_align(hdr2, LV_ALIGN_TOP_MID, 0, 4);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     g_lbl_steps = lv_label_create(t2);
     lv_label_set_text(g_lbl_steps, "Steps: 0");
     lv_obj_set_style_text_color(g_lbl_steps, lv_color_white(), 0);
     lv_obj_align(g_lbl_steps, LV_ALIGN_CENTER, 0, -8);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 
     g_lbl_act = lv_label_create(t2);
     lv_label_set_text(g_lbl_act, "Activity: Idle");
     lv_obj_set_style_text_color(g_lbl_act, lv_color_white(), 0);
     lv_obj_align(g_lbl_act, LV_ALIGN_CENTER, 0, 8);
+    lv_obj_set_style_bg_opa(g_tileview, LV_OPA_COVER, 0);
 }
 
 /* =========================================================================

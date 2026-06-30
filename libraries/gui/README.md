@@ -106,6 +106,7 @@ gui/
 ├── lv_conf.h                LVGL v9 structural compilation parameters (handled via #ifdefs)
 ├── main.c                   Application execution entry point + core sensor polling loop
 ├── Makefile                 Platform-aware unified build driver (linux | riscv)
+├── Test.eez-project         EEZ Studio project file
 ├── libs/
 │   └── lvgl/                LVGL v9 pure library source tree (tracked via Git Submodule)
 ├── src/

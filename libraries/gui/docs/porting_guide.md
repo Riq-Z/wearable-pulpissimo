@@ -57,6 +57,7 @@ gui/
 ├── lv_conf.h                LVGL v9 layout configurations (handled via #ifdefs)
 ├── main.c                   Main event loop execution + raw hardware polling loop
 ├── Makefile                 PLATFORM=linux | riscv configuration driver
+├── Test.eez-studio          EEZ Studio project file
 ├── docs/
 │   ├── extending.md         Guide for expanding inputs, outputs, and UI layouts
 │   ├── display_layer.md     API reference guide for the decoupled UI processor

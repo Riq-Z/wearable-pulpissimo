@@ -14,11 +14,12 @@ Repositori ini berisi implementasi *driver bare-metal* bahasa C untuk membaca da
 ## Penjelasan Logika 
 
 ### 1. Address Handling (Chip-Select)
-Alamat I2C DS1307 adalah `0x68` (7-bit). Dalam format 8-bit yang digunakan oleh library PULP I2C:
-- **Write address:** `0xD0` (0x68 << 1 | 0)
-- **Read address:** `0xD1` (0x68 << 1 | 1)
+Alamat I2C DS1307 dari datasheet adalah `0x68` (7-bit, binary: `1101000`). Driver I2C PULP Runtime membutuhkan format 8-bit, sehingga address di-shift kiri 1 bit saat inisialisasi:
+- **Chip-select (cs):** `0x68 << 1` = `0xD0`
+- **Write address (otomatis):** `0xD0` (bit-0 = 0)
+- **Read address (otomatis):** `0xD0 | 0x1` = `0xD1` (bit-0 = 1)
 
-Address di-set melalui field `dev->cs` saat inisialisasi. Library `i2c.c` secara otomatis mengirim `dev->cs` sebagai address byte setelah START condition, dan melakukan OR dengan `0x1` saat operasi read. **Address tidak boleh dimasukkan ke dalam buffer data.**
+Address di-set melalui `dev->cs = DS1307_ADDR << 1` saat inisialisasi. Library `i2c.c` secara otomatis mengirim `dev->cs` sebagai address byte setelah START condition, dan melakukan OR dengan `0x1` saat operasi read. **Address tidak boleh dimasukkan ke dalam buffer data.**
 
 ### 2. Konversi BCD (Binary-Coded Decimal)
 Sensor DS1307 hanya menerima dan mengirim data dalam format BCD. Agar API lebih ramah digunakan (*user-friendly*), struktur `rtc_time_t` sengaja dirancang menggunakan nilai **Desimal murni (0-99)**. Driver ini secara otomatis melakukan konversi `dec_to_bcd` saat menulis ke sensor (*set time*), dan `bcd_to_dec` saat membaca dari sensor (*get time*).
@@ -52,6 +53,15 @@ typedef struct {
     uint8_t year;    // Tahun (0-99, representasi 2000-2099)
 } rtc_time_t;
 ```
+Struktur Pengecek Pergantian Hari
+```c
+typedef struct {
+    uint8_t last_date;
+    uint8_t last_month;
+    uint8_t last_year;
+    int     valid;
+} day_tracker_t;
+```
 
 ### Error Codes
 
@@ -69,7 +79,7 @@ typedef struct {
 ### Fungsi
 
 #### `int rtc_init(i2c_dev_t *dev_conf, i2c_t **i2c_handle)`
-Menginisialisasi hardware I2C Bus 0 untuk komunikasi dengan DS1307. Mengatur chip-select ke address `0xD0` dan baudrate ke 100 kHz.
+Menginisialisasi hardware I2C Bus 0 untuk komunikasi dengan DS1307. Mengatur chip-select ke address `0x68 << 1` (7-bit di-shift ke 8-bit) dan baudrate ke 100 kHz.
 
 | Parameter | Deskripsi |
 |---|---|
@@ -170,7 +180,60 @@ Fungsi konversi internal yang diekspos untuk keperluan unit testing.
 | `bcd_to_dec` | BCD (0x00-0x99) | Desimal (0-99) |
 
 ---
+#### `void day_tracker_init(day_tracker_t *dt)`
+Menginisialisasi struktur `day_tracker_t` ke kondisi awal (belum ada data pembanding). Wajib dipanggil sekali sebelum `day_tracker_check_rollover()` digunakan pertama kali.
 
+| Parameter |           Deskripsi                                                         |
+|-----------|-----------------------------------------------------------------------------|
+|   `dt`    | Pointer ke struktur `day_tracker_t` yang akan direset (dialokasi pemanggil) |
+
+**Perilaku:**
+- `last_date`, `last_month`, `last_year` di-set ke `0`.
+- `valid` di-set ke `0`, menandakan tracker belum punya data acuan.
+
+**Contoh:**
+```c
+day_tracker_t tracker;
+day_tracker_init(&tracker);
+```
+
+---
+
+#### `int day_tracker_check_rollover(day_tracker_t *dt, i2c_t *i2c_handle)`
+Membaca waktu terkini dari RTC lalu membandingkannya dengan data tanggal terakhir yang tersimpan di `dt`, untuk mendeteksi apakah hari sudah berganti (rollover).
+
+|  Parameter   |    Deskripsi                                                                |
+|--------------|-----------------------------------------------------------------------------|
+|     `dt`     | Pointer ke struktur `day_tracker_t` yang menyimpan tanggal acuan sebelumnya |
+| `i2c_handle` | Handle I2C yang diperoleh dari `rtc_init()`                                 |
+
+|           Return            | Keterangan |
+|-----------------------------|------------|
+|           `1`               | Hari berganti (date/month/year berbeda dari data tersimpan sebelumnya) — `dt` otomatis diperbarui ke nilai terbaru |
+|           `0`               | Belum ada pergantian hari, atau ini adalah pemanggilan pertama kali (`dt->valid == 0`) — nilai acuan langsung disimpan tanpa dianggap rollover |
+|   `RTC_ERR_NULL_PTR` (-1)   | Parameter `dt` atau `i2c_handle` bernilai `NULL` |
+| (kode error `rtc_get_time`) | Jika pembacaan RTC gagal, error code diteruskan apa adanya dari `rtc_get_time()` (mis. `RTC_ERR_I2C_WRITE_PTR`, `RTC_ERR_I2C_READ`, dst.) |
+
+**Catatan Logika:**
+- Pemanggilan pertama (`dt->valid == 0`) hanya menyimpan tanggal saat ini sebagai acuan dan mengembalikan `0`: bukan dianggap sebagai rollover.
+- Pembandingan dilakukan pada tiga field sekaligus (`date`, `month`, `year`) sehingga pergantian bulan/tahun juga terdeteksi sebagai rollover, bukan hanya pergantian tanggal harian biasa.
+- Fungsi ini melakukan pembacaan I2C penuh (`rtc_get_time`) setiap dipanggil, sehingga cocok dipanggil secara periodik (mis. tiap beberapa menit/jam), bukan tiap loop cepat, untuk menghindari beban bus I2C berlebih.
+
+**Contoh:**
+```c
+day_tracker_t tracker;
+day_tracker_init(&tracker);
+
+// Dipanggil secara periodik di main loop
+int rc = day_tracker_check_rollover(&tracker, rtc_handle);
+if (rc == 1) {
+    printf("Hari berganti! Tanggal baru: %02d-%02d-%02d\n",
+           tracker.last_date, tracker.last_month, tracker.last_year);
+} else if (rc < 0) {
+    printf("Gagal cek rollover, error code: %d\n", rc);
+}
+```
+---
 ## Catatan Penting: Konvensi Library I2C PULPissimo
 
 Library `i2c.c` bawaan PULP Runtime memiliki konvensi khusus yang **berbeda** antara `i2c_write` dan `i2c_read`:
